@@ -14,7 +14,7 @@ import {
 } from './services/googleAppsScript'
 
 const SCHOOL_NAME = 'โรงเรียนบ้านคูหา'
-const logoUrl = '/bankhuha-logo.png'
+const logoUrl = `${import.meta.env.BASE_URL}bankhuha-logo.png`
 
 const Icon = ({ name, className = 'h-5 w-5' }) => {
   const paths = {
