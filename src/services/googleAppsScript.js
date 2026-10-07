@@ -110,24 +110,28 @@ async function postToWebApp(payload, fallbackMessage, { requireAuth = true } = {
   return result
 }
 
-export async function requestLoginCode(email) {
-  return postToWebApp(
-    { action: 'requestLoginCode', email: String(email || '').trim().toLowerCase() },
-    'ไม่สามารถส่งรหัสยืนยันได้',
-    { requireAuth: false },
-  )
-}
 
-export async function verifyLoginCode(email, code) {
+export async function loginWithPassword(email, password) {
   const result = await postToWebApp(
-    { action: 'verifyLoginCode', email: String(email || '').trim().toLowerCase(), code: String(code || '').trim() },
-    'ไม่สามารถยืนยันรหัสได้',
+    { action: 'loginWithPassword', email: String(email || '').trim().toLowerCase(), password: String(password || '') },
+    'ไม่สามารถเข้าสู่ระบบได้',
     { requireAuth: false },
   )
   const session = { token: result.sessionToken, user: result.user }
   writeAuthSession(session)
   return session
 }
+
+export async function changePassword(currentPassword, newPassword) {
+  const result = await postToWebApp(
+    { action: 'changePassword', currentPassword: String(currentPassword || ''), newPassword: String(newPassword || '') },
+    'ไม่สามารถเปลี่ยนรหัสผ่านได้',
+  )
+  const session = { token: result.sessionToken, user: result.user }
+  writeAuthSession(session)
+  return session
+}
+
 
 export async function validateAuthSession() {
   const existing = readAuthSession()

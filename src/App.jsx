@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
+  changePassword,
   deleteActivities,
   deleteGroup,
   isGoogleAppsScriptConfigured,
   listActivities,
   listGroups,
-  requestLoginCode,
+  loginWithPassword,
   saveActivity,
   saveGroup,
   signOut,
   validateAuthSession,
-  verifyLoginCode,
 } from './services/googleAppsScript'
 
 const SCHOOL_NAME = 'โรงเรียนบ้านคูหา'
@@ -952,7 +952,7 @@ function EmptyPage({ activePage, onNavigate, user }) {
   )
 }
 
-function MainApp({ user, onSignOut }) {
+function MainApp({ user, onSignOut, onChangePassword }) {
   const [activePage, setActivePage] = useState('dashboard')
   const [menuOpen, setMenuOpen] = useState(false)
   const [localGroups, setLocalGroups] = useState(readLocalGroups)
@@ -1022,7 +1022,10 @@ function MainApp({ user, onSignOut }) {
               <div className="grid h-11 w-11 place-items-center rounded-full bg-slate-100 font-bold text-[#17365d]">{user.name.replace(/^ครู/, '').trim().charAt(0) || 'ค'}</div>
               <div>
                 <p className="text-sm font-bold text-slate-900">{user.name}</p>
-                <button type="button" onClick={onSignOut} className="text-left text-xs font-semibold text-rose-600 hover:text-rose-700">ออกจากระบบ</button>
+                <div className="flex gap-3">
+                  <button type="button" onClick={onChangePassword} className="text-left text-xs font-semibold text-[#17365d] hover:text-[#0b1f36]">เปลี่ยนรหัสผ่าน</button>
+                  <button type="button" onClick={onSignOut} className="text-left text-xs font-semibold text-rose-600 hover:text-rose-700">ออกจากระบบ</button>
+                </div>
               </div>
             </div>
           </header>
@@ -1112,31 +1115,17 @@ function MainApp({ user, onSignOut }) {
 
 function LoginPage({ onAuthenticated }) {
   const [email, setEmail] = useState('')
-  const [code, setCode] = useState('')
-  const [codeSent, setCodeSent] = useState(false)
-  const [state, setState] = useState({ loading: false, error: '', message: '' })
+  const [password, setPassword] = useState('')
+  const [state, setState] = useState({ loading: false, error: '' })
 
-  const handleRequestCode = async (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    setState({ loading: true, error: '', message: '' })
+    setState({ loading: true, error: '' })
     try {
-      const result = await requestLoginCode(email)
-      setEmail(result.email)
-      setCodeSent(true)
-      setState({ loading: false, error: '', message: result.message })
-    } catch (error) {
-      setState({ loading: false, error: error.message, message: '' })
-    }
-  }
-
-  const handleVerifyCode = async (event) => {
-    event.preventDefault()
-    setState({ loading: true, error: '', message: 'กำลังตรวจสอบรหัส...' })
-    try {
-      const session = await verifyLoginCode(email, code)
+      const session = await loginWithPassword(email, password)
       onAuthenticated(session.user)
     } catch (error) {
-      setState({ loading: false, error: error.message, message: '' })
+      setState({ loading: false, error: error.message })
     }
   }
 
@@ -1147,29 +1136,78 @@ function LoginPage({ onAuthenticated }) {
           <img src={logoUrl} alt="ตราโรงเรียนบ้านคูหา" className="h-full w-full object-contain" />
         </div>
         <h1 className="mt-5 text-center text-2xl font-extrabold text-slate-950">ระบบ PLC โรงเรียนบ้านคูหา</h1>
-        <p className="mt-2 text-center text-sm leading-6 text-slate-500">ยืนยันอีเมลที่ได้รับอนุญาตเพื่อเข้าใช้งาน โดยไม่ต้องสมัครสมาชิกหรือสร้างรหัสผ่าน</p>
+        <p className="mt-2 text-center text-sm leading-6 text-slate-500">เข้าสู่ระบบด้วยอีเมลที่โรงเรียนอนุญาตและรหัสผ่านของคุณ</p>
 
         {!isGoogleAppsScriptConfigured() && (
           <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">ยังไม่ได้เชื่อม Google Apps Script กรุณาตั้งค่าไฟล์ <code>.env.local</code> ก่อน</div>
         )}
 
-        <form onSubmit={codeSent ? handleVerifyCode : handleRequestCode} className="mt-7 space-y-5">
-          <div>
-            <FieldLabel required>อีเมล</FieldLabel>
-            <input required autoFocus={!codeSent} type="email" value={email} readOnly={codeSent} onChange={(event) => setEmail(event.target.value)} className={`${inputClass} ${codeSent ? 'bg-slate-100' : ''}`} placeholder="name@gmail.com" />
-          </div>
-          {codeSent && (
-            <div>
-              <FieldLabel required hint="ตรวจสอบกล่องจดหมายและ Spam">รหัสยืนยัน 6 หลัก</FieldLabel>
-              <input required autoFocus value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" className={`${inputClass} text-center text-xl font-bold tracking-[0.35em]`} placeholder="000000" />
-            </div>
-          )}
-          {state.message && <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{state.message}</p>}
+        <form className="mt-7 space-y-4" onSubmit={handleSubmit}>
+          <label className="block text-sm font-bold text-slate-700">
+            อีเมล
+            <input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none transition focus:border-[#17365d] focus:ring-2 focus:ring-blue-100" placeholder="name@gmail.com" />
+          </label>
+          <label className="block text-sm font-bold text-slate-700">
+            รหัสผ่าน / PIN
+            <input type="password" autoComplete="current-password" maxLength={128} required value={password} onChange={(event) => setPassword(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none transition focus:border-[#17365d] focus:ring-2 focus:ring-blue-100" placeholder="รหัสผ่านเริ่มต้น 123456" />
+          </label>
           {state.error && <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{state.error}</p>}
           <button type="submit" disabled={state.loading || !isGoogleAppsScriptConfigured()} className="w-full rounded-xl bg-[#17365d] px-5 py-3.5 font-bold text-white shadow-lg transition hover:bg-[#0f2947] disabled:cursor-not-allowed disabled:opacity-50">
-            {state.loading ? 'กรุณารอสักครู่...' : codeSent ? 'ยืนยันและเข้าใช้งาน' : 'ส่งรหัสยืนยัน'}
+            {state.loading ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}
           </button>
-          {codeSent && <button type="button" onClick={() => { setCodeSent(false); setCode(''); setState({ loading: false, error: '', message: '' }) }} className="w-full text-sm font-semibold text-slate-500 hover:text-slate-700">เปลี่ยนอีเมล</button>}
+          <p className="text-center text-xs leading-5 text-slate-400">ผู้ใช้ครั้งแรกใช้รหัส <strong>123456</strong> และระบบจะให้เปลี่ยนรหัสผ่านทันที</p>
+        </form>
+      </section>
+    </main>
+  )
+}
+
+function ChangePasswordPage({ user, forced = false, onChanged, onCancel, onSignOut }) {
+  const [fields, setFields] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
+  const [state, setState] = useState({ loading: false, error: '' })
+
+  const updateField = (event) => setFields((current) => ({ ...current, [event.target.name]: event.target.value }))
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    if (fields.newPassword !== fields.confirmPassword) {
+      setState({ loading: false, error: 'ยืนยันรหัสผ่านใหม่ไม่ตรงกัน' })
+      return
+    }
+    if (fields.newPassword.length < 6) {
+      setState({ loading: false, error: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร' })
+      return
+    }
+    setState({ loading: true, error: '' })
+    try {
+      const session = await changePassword(fields.currentPassword, fields.newPassword)
+      onChanged(session.user)
+    } catch (error) {
+      setState({ loading: false, error: error.message })
+    }
+  }
+
+  return (
+    <main className="grid min-h-screen place-items-center bg-gradient-to-br from-[#0b1f36] via-[#17365d] to-[#315f8b] p-5">
+      <section className="w-full max-w-md rounded-[28px] bg-white p-7 shadow-2xl sm:p-9">
+        <h1 className="text-2xl font-extrabold text-slate-950">{forced ? 'ตั้งรหัสผ่านใหม่ก่อนใช้งาน' : 'เปลี่ยนรหัสผ่าน'}</h1>
+        <p className="mt-2 text-sm leading-6 text-slate-500">บัญชี {user.email} รหัสใหม่ต้องมีอย่างน้อย 6 ตัวอักษรและห้ามใช้ 123456</p>
+        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+          {[
+            ['currentPassword', 'รหัสผ่านปัจจุบัน', 'current-password'],
+            ['newPassword', 'รหัสผ่านใหม่', 'new-password'],
+            ['confirmPassword', 'ยืนยันรหัสผ่านใหม่', 'new-password'],
+          ].map(([name, label, autoComplete]) => (
+            <label key={name} className="block text-sm font-bold text-slate-700">
+              {label}
+              <input name={name} type="password" autoComplete={autoComplete} minLength={6} maxLength={128} required value={fields[name]} onChange={updateField} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-[#17365d] focus:ring-2 focus:ring-blue-100" />
+            </label>
+          ))}
+          {state.error && <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{state.error}</p>}
+          <button type="submit" disabled={state.loading} className="w-full rounded-xl bg-[#17365d] px-5 py-3.5 font-bold text-white disabled:opacity-50">{state.loading ? 'กำลังบันทึก...' : 'บันทึกรหัสผ่านใหม่'}</button>
+          <div className="flex justify-center gap-4 text-sm font-semibold">
+            {!forced && <button type="button" onClick={onCancel} className="text-slate-500 hover:text-slate-800">ยกเลิก</button>}
+            {forced && <button type="button" onClick={onSignOut} className="text-rose-600 hover:text-rose-700">ออกจากระบบ</button>}
+          </div>
         </form>
       </section>
     </main>
@@ -1178,6 +1216,7 @@ function LoginPage({ onAuthenticated }) {
 
 function App() {
   const [user, setUser] = useState(undefined)
+  const [changingPassword, setChangingPassword] = useState(false)
 
   useEffect(() => {
     validateAuthSession().then((session) => setUser(session?.user || null))
@@ -1185,12 +1224,21 @@ function App() {
 
   const handleSignOut = async () => {
     await signOut()
+    setChangingPassword(false)
     setUser(null)
+  }
+
+  const handlePasswordChanged = (updatedUser) => {
+    setUser(updatedUser)
+    setChangingPassword(false)
   }
 
   if (user === undefined) return <div className="grid min-h-screen place-items-center bg-slate-100 font-semibold text-[#17365d]">กำลังตรวจสอบการเข้าใช้งาน...</div>
   if (!user) return <LoginPage onAuthenticated={setUser} />
-  return <MainApp user={user} onSignOut={handleSignOut} />
+  if (user.mustChangePassword || changingPassword) {
+    return <ChangePasswordPage user={user} forced={Boolean(user.mustChangePassword)} onChanged={handlePasswordChanged} onCancel={() => setChangingPassword(false)} onSignOut={handleSignOut} />
+  }
+  return <MainApp user={user} onSignOut={handleSignOut} onChangePassword={() => setChangingPassword(true)} />
 }
 
 export default App
