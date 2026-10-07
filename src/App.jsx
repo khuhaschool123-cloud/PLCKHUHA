@@ -14,7 +14,7 @@ import {
 } from './services/googleAppsScript'
 
 const SCHOOL_NAME = 'โรงเรียนบ้านคูหา'
-const logoUrl = '/school-logo.svg'
+const logoUrl = '/bankhuha-logo.png'
 
 const Icon = ({ name, className = 'h-5 w-5' }) => {
   const paths = {
@@ -987,7 +987,7 @@ function MainApp({ user, onSignOut }) {
         </button>
 
         <div className="flex items-center gap-3 px-2">
-          <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white p-1.5 shadow-lg">
+          <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white p-1 shadow-lg">
             <img src={logoUrl} alt="ตราโรงเรียนบ้านคูหา" className="h-full w-full object-contain" />
           </div>
           <div>
@@ -1143,7 +1143,7 @@ function LoginPage({ onAuthenticated }) {
   return (
     <main className="grid min-h-screen place-items-center bg-gradient-to-br from-[#0b1f36] via-[#17365d] to-[#315f8b] p-5">
       <section className="w-full max-w-md rounded-[28px] bg-white p-7 shadow-2xl sm:p-9">
-        <div className="mx-auto grid h-20 w-20 place-items-center rounded-3xl bg-slate-50 p-2 shadow-sm ring-1 ring-slate-200">
+        <div className="mx-auto grid h-36 w-36 place-items-center overflow-hidden rounded-3xl bg-white p-1 shadow-sm ring-1 ring-slate-200">
           <img src={logoUrl} alt="ตราโรงเรียนบ้านคูหา" className="h-full w-full object-contain" />
         </div>
         <h1 className="mt-5 text-center text-2xl font-extrabold text-slate-950">ระบบ PLC โรงเรียนบ้านคูหา</h1>
